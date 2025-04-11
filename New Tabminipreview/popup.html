@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Declutter!</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+
+<body>
+    <div class="app-container">
+        <header class="app-header">
+            <h1>Declutter!</h1>
+            <div class="description-with-save">
+                <p class="app-description">Manage browser tabs by capturing full-page screenshots and advanced organization tools</p>
+                <button id="saveWorkspaceButton" class="btn btn-primary save-btn" title="Save current tabs as workspace">
+                    <svg class="save-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                        <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                        <polyline points="7 3 7 8 15 8"></polyline>
+                    </svg>
+                    Save
+                </button>
+            </div>
+
+            <div class="header-actions">
+                <button id="refreshButton" class="icon-button" title="Refresh">
+                    <img src="icons/refresh.svg" alt="Refresh">
+                </button>
+                <div class="close-tabs-dropdown">
+                    <button id="closeTabsButton" class="icon-button" title="Close Tabs">
+                        <img src="icons/close.svg" alt="Close Tabs">
+                    </button>
+                    <div class="dropdown-content">
+                        <button id="closeAllTabs" class="dropdown-item">Close All Open Tabs</button>
+                        <button id="closeAndRetain" class="dropdown-item">Close Tabs but Retain in List</button>
+                    </div>
+                </div>
+                <button id="undoButton" class="icon-button" title="Undo Closed Tabs" style="display: none;">
+                    <img src="icons/undo.svg" alt="Undo">
+                </button>
+                <button id="settingsButton" class="icon-button" title="Settings">
+                    <img src="icons/settings.svg" alt="Settings">
+                </button>
+            </div>
+        </header>
+
+        <main class="app-main">
+            <section class="tabs-section">
+                <div class="section-header">
+                    <h2>Open Tabs</h2>
+                    <button id="clear-cache-btn" class="btn btn-secondary btn-sm" title="Clear all cached previews">
+                        Clear Cache
+                    </button>
+                </div>
+                <div id="tabList" class="tab-list"></div>
+            </section>
+
+            <section class="preview-section">
+                <div class="section-header">
+                    <h2>Preview</h2>
+                    <button id="close-preview" class="btn btn-icon" title="Close Preview">×</button>
+                </div>
+                <div id="previewContainer" class="preview-container"></div>
+            </section>
+        </main>
+
+        <footer class="app-footer">
+            <div class="privacy-notice">
+                <p><strong>Privacy Notice:</strong> All your data (tab information, screenshots, workspaces) is stored locally on your device and is never transmitted to any external servers. <a href="html/privacy-policy.html" target="_blank">Read our full Privacy Policy</a>.</p>
+            </div>
+            <p>Declutter! &copy; 2023</p>
+        </footer>
+    </div>
+
+    <script type="module" src="js/popup.js"></script>
+</body>
+
+</html>

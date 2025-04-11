@@ -1,0 +1,645 @@
+# DECLUTTER X GOFULLPAGE CHROME EXTENSION - CODE REFERENCE
+
+## ARCHITECTURE OVERVIEW
+
+The Declutter X GoFullPage extension is built on a modular architecture that separates concerns across multiple components:
+
+1. **Core Application (main.js)** - Coordinates all components and manages the application flow
+2. **Tab Manager (tab-manager.js)** - Handles tab listing, selection, and status management
+3. **UI Controller (ui-controller.js)** - Manages the user interface and user interactions
+4. **Workspace Manager (workspace-indexeddb-manager.js)** - Handles storage and retrieval of workspaces
+5. **Sidebar Component (sidebar.js)** - Provides workspace management interface
+6. **Smart Cache Manager (smart-cache-manager.js)** - Manages caching of tab screenshots with activity-based expiry
+7. **Activity Tracker (activity-tracker.js)** - Tracks user interactions to inform caching decisions
+8. **Page Capture (page-capture.js)** - Handles the capture of full-page screenshots
+9. **Image Processor (image-processor.js)** - Processes captured screenshots
+
+## COMPONENT RESPONSIBILITIES
+
+### 1. Core Application (main.js)
+
+```javascript
+class App {
+    constructor() {
+        // Initialize components
+        this.tabManager = null;
+        this.ui = null;
+        this.cacheManager = null;
+        this.tabGroupManager = null;
+        this.workspaceManager = null;
+        this.sidebar = null;
+        this.activityTracker = null; // Track user activity
+        // ...other properties
+    }
+
+    async init() {
+        // Initialize modules with error protection
+        this.activityTracker = new ActivityTracker();
+        await this.activityTracker.init();
+        
+        this.cacheManager = new SmartCacheManager();
+        await this.cacheManager.init(this.activityTracker);
+        
+        this.tabManager = new TabManager(this.activityTracker);
+        this.ui = new UIController();
+        // ...initialize other components
+    }
+
+    // Methods for handling tab selection, screenshot capture, etc.
+    
+    // Enhanced workspace loading with intelligent tab management
+    async loadWorkspace(workspaceId) {
+        // Get workspace from storage
+        // Show loading progress message
+        
+        // Track metrics for user feedback
+        // - Count of newly opened tabs
+        // - Count of tabs already open
+        
+        // Create existingTabsByUrl object to prevent duplicates
+        // - Index existing tabs by URL for efficient lookup
+        // - Allow checking for duplicates before opening new tabs
+        
+        // Process workspace tabs with intelligent loading:
+        // - For tabs already in the list but closed: reopen them
+        // - For tabs not in the list: create new ones
+        // - Track metrics for user feedback
+        
+        // Apply visual highlighting to indicate updated tabs
+        // Add delay between tab openings to prevent browser overload
+        
+        // Show completion message with detailed metrics
+    }
+}
+```
+
+The App class serves as the central controller that initializes all components, sets up event listeners, and coordinates the flow of data between components. It handles tab selection, screenshot capture, cache management, and workspace interactions. With the addition of activity tracking, it now initializes the ActivityTracker and passes it to the TabManager and SmartCacheManager for activity-aware operations. The loadWorkspace method has been enhanced with intelligent tab loading that prevents duplicates and provides detailed usage metrics.
+
+### 2. Tab Manager (tab-manager.js)
+
+```javascript
+export default class TabManager {
+    constructor(activityTracker = null) {
+        this.tabContainer = null;
+        this.onTabSelect = null;
+        this.tabs = [];
+        this.extensionTabId = null;
+        this.cachedTabIds = new Set();
+        this.persistentTabs = []; // Tracks closed tabs
+        this.autoLoadNewTabs = true; // Controls auto-detection of new tabs
+        this.activityTracker = activityTracker; // Reference to the activity tracker
+        // ...other properties
+    }
+
+    async init(container, selectCallback, activityTracker = null) {
+        // Initialize tab manager
+        // Set up Chrome API event listeners
+        
+        // Load saved autoLoadNewTabs state from localStorage
+        // Implement persistence of user preferences across sessions
+        // Handle localStorage access errors gracefully
+        
+        // Log initialization status for debugging
+        console.log('Tab manager initialized with activity tracking:', !!this.activityTracker);
+    }
+
+    // Methods for tab operations
+    async refreshTabs() { /* ... */ }
+    updateTabStatus() { /* ... */ }
+    renderTabs() { /* ... */ }
+    selectTab(tabId) { 
+        // Update activity when tab is selected
+        if (this.activityTracker) {
+            this.activityTracker.updateActivity();
+        }
+        /* ... */  
+    }
+    
+    // Methods for tab state management
+    async handleLoadNew() {
+        // Toggle auto-load state
+        this.autoLoadNewTabs = !this.autoLoadNewTabs;
+        
+        // Save preference to localStorage for persistence
+        try {
+            localStorage.setItem('autoLoadNewTabs', this.autoLoadNewTabs.toString());
+        } catch (e) {
+            console.warn('Failed to save autoLoadNewTabs to localStorage', e);
+        }
+        
+        // Update UI to reflect current state
+    }
+    // ...other methods
+}
+```
+
+The TabManager handles all tab-related operations, including listing tabs, tracking their status, and managing tab selection. It maintains a list of both open and closed tabs, integrates with Chrome's tab group API, and provides methods for tab navigation and management. Recent improvements include localStorage persistence for user preferences, enhanced error handling, and better console logging for debugging. It now also integrates with the ActivityTracker to inform caching decisions.
+
+### 3. UI Controller (ui-controller.js)
+
+```javascript
+class UIController {
+    constructor() {
+        this.previewContainer = null;
+        this.progressContainer = null;
+        this.progressBar = null;
+        this.progressText = null;
+        this.errorContainer = null;
+        this.messageContainer = null;
+        // ...other properties
+    }
+
+    init(selectors) {
+        // Initialize UI elements
+        // Set up action buttons
+    }
+
+    // UI methods
+    showProgress(percent, message) { /* ... */ }
+    showError(titleOrMessage, message, retryCallback) { /* ... */ }
+    showPreview(dataUrl, metadata) { /* ... */ }
+    // ...other methods
+}
+```
+
+The UIController manages all user interface elements and interactions. It handles preview display, progress indicators, error messages, modal dialogs, and button events. It also manages animations, transitions, and layout adjustments.
+
+### 4. Workspace Manager (workspace-indexeddb-manager.js)
+
+```javascript
+export default class WorkspaceIndexedDBManager {
+    constructor() {
+        this.DB_NAME = 'declutterWorkspacesDB';
+        this.STORE_NAME = 'workspaces';
+        this.DB_VERSION = 1;
+        this.db = null;
+    }
+
+    async init() {
+        // Initialize IndexedDB database
+    }
+
+    // Database operations
+    async loadWorkspaces() { /* ... */ }
+    async saveWorkspace(workspace) { /* ... */ }
+    async deleteWorkspace(id) { /* ... */ }
+    async renameWorkspace(id, newName) { /* ... */ }
+    // ...other methods
+}
+```
+
+The WorkspaceIndexedDBManager handles saving, loading, and managing tab workspaces in IndexedDB. It provides CRUD operations for workspaces and manages data serialization.
+
+### 5. Sidebar Component (sidebar.js)
+
+```javascript
+export default class Sidebar {
+    constructor(workspaceManager) {
+        this.workspaceManager = workspaceManager;
+        this.sidebarElement = null;
+        this.isVisible = false;
+        this.isPinned = false;
+        // ...other properties
+    }
+
+    init() {
+        this.createSidebar();
+        this.createToggleButton();
+        this.setupEventListeners();
+        return this;
+    }
+
+    // Sidebar methods
+    createSidebar() { /* ... */ }
+    showSidebar() { /* ... */ }
+    hideSidebar() { /* ... */ }
+    renderWorkspaces() { /* ... */ }
+    
+    // Enhanced workspace interactions
+    viewWorkspaceAsCurrent(id) {
+        // Create option dialog with clear instructions
+        // Display informational message with two methods for opening tabs:
+        // 1. Using 'Open all tabs in list' from Close Tabs dropdown
+        // 2. Using "Load New" button for intelligent tab opening
+        
+        // Provide guidance about using "Load New" for preventing duplicates
+        // Display user-friendly instructions with clear visual formatting
+        
+        // Create event handlers for user actions
+        // Dispatch custom events for main.js to handle
+    }
+    // ...other methods
+}
+```
+
+The Sidebar component creates and manages the workspace sidebar interface. It handles sidebar visibility, pinning, workspace listing, and interactions with workspace items. Recent enhancements include improved user guidance for workspace interactions, clearer instructions for tab opening methods, and better explanations of intelligent tab loading features.
+
+### 6. Smart Cache Manager (smart-cache-manager.js)
+
+```javascript
+export default class SmartCacheManager extends IndexedDBCacheManager {
+    constructor() {
+        super();
+        this.DB_NAME = 'declutterCacheDB';
+        this.STORE_NAME = 'screenshots';
+        this.META_STORE_NAME = 'metadata';
+        this.DB_VERSION = 2; // Updated version for activity-based caching
+        this.db = null;
+        this.CACHE_EXPIRY = 30 * 60 * 1000; // 30 minutes
+        this.MAX_CACHE_ITEMS = 50; // Maximum number of cached items
+        this.activityTracker = null; // Reference to activity tracker
+        
+        // Storage quota information
+        this.SIZE_THRESHOLD_WARNING = 0.85; // 85% of quota
+        this.SIZE_THRESHOLD_CRITICAL = 0.95; // 95% of quota
+        this.storageQuota = null;
+        
+        // Cleanup interval reference
+        this.cleanupInterval = null;
+    }
+
+    async init(activityTracker) {
+        // Store reference to the activity tracker
+        this.activityTracker = activityTracker;
+        
+        // Call parent's init method
+        const initResult = await super.init();
+        
+        // Get storage quota info and set up cleanup intervals
+        await this.updateStorageQuota();
+        await this.performStartupCleanup();
+        
+        // Set up regular cleanup checks
+        this.cleanupInterval = setInterval(
+            () => this.performPeriodicCleanup(),
+            10 * 60 * 1000 // Every 10 minutes
+        );
+        
+        return initResult;
+    }
+
+    // Cache operations
+    async getScreenshot(tabId) {
+        // Enhanced to check for activity-based expiry
+        const result = await this._getItem(tabId);
+        if (!result) {
+            return null;
+        }
+        
+        // Check if this item should be expired based on activity
+        if (this.isExpired(result)) {
+            await this.removeScreenshot(tabId);
+            return null;
+        }
+        
+        return result;
+    }
+    
+    async addScreenshot(tabId, dataUrl, metadata) { 
+        // Enhanced to include activity timestamp
+        metadata = { 
+            ...metadata, 
+            timestamp: this.activityTracker ? 
+                this.activityTracker.lastActivity : 
+                Date.now() 
+        };
+        return await super.addScreenshot(tabId, dataUrl, metadata);
+    }
+    
+    // Activity-based cache methods
+    isExpired(item) {
+        // If activity tracker is not available, fall back to default expiry logic
+        if (!this.activityTracker) {
+            const timestamp = item.metadata?.timestamp || 0;
+            return (Date.now() - timestamp) > this.CACHE_EXPIRY;
+        }
+        
+        // If extension has been active recently, nothing expires
+        if (this.activityTracker.isActive()) {
+            return false;
+        }
+        
+        // Calculate expiry time based on last activity
+        const timestamp = item.metadata?.timestamp || 0;
+        const expiryTime = this.activityTracker.lastActivity + this.CACHE_EXPIRY;
+        
+        // Item is expired if we're past the expiry time
+        return Date.now() > expiryTime;
+    }
+    
+    async performStartupCleanup() {
+        // More aggressive cleanup on startup
+        if (this.activityTracker && !this.activityTracker.isActive()) {
+            await this.cleanExpiredCache();
+        }
+        
+        // Check storage quota and manage if needed
+        await this.updateStorageQuota();
+        if (this.storageQuota && this.storageQuota.usageRatio > this.SIZE_THRESHOLD_WARNING) {
+            await this.manageCacheSize();
+        }
+    }
+    
+    async performPeriodicCleanup() {
+        // Only cleanup when needed
+        let needsCleanup = this.activityTracker ? !this.activityTracker.isActive() : true;
+        
+        // Check storage usage
+        await this.updateStorageQuota();
+        const isStorageCritical = this.storageQuota && 
+                             this.storageQuota.usageRatio > this.SIZE_THRESHOLD_WARNING;
+        
+        if (needsCleanup || isStorageCritical) {
+            if (needsCleanup) {
+                await this.cleanExpiredCache();
+            }
+            
+            if (isStorageCritical) {
+                await this.manageCacheSize();
+            }
+        }
+    }
+    
+    // ...other methods
+}
+```
+
+The SmartCacheManager extends the base CacheManager to add activity-based expiry logic. It tracks storage quota, manages cache size based on user activity, and prevents premature deletion of cached items that might still be relevant to the user. It includes methods for startup and periodic cleanup, only removing items when necessary based on activity patterns and storage constraints.
+
+### 7. Activity Tracker (activity-tracker.js)
+
+```javascript
+export default class ActivityTracker {
+    constructor() {
+        // Last timestamp of any extension activity
+        this.lastActivity = Date.now();
+        
+        // Cleanup interval reference
+        this.intervalId = null;
+        
+        // Bind methods to ensure correct context
+        this.updateActivity = this.updateActivity.bind(this);
+        this.isActive = this.isActive.bind(this);
+        this.init = this.init.bind(this);
+    }
+    
+    async init() {
+        console.log('Initializing activity tracker...');
+        
+        // Track direct UI interactions
+        document.addEventListener('click', this.updateActivity);
+        document.addEventListener('keydown', this.updateActivity);
+        document.addEventListener('scroll', this.updateActivity);
+        document.addEventListener('mousemove', this.updateActivity, { 
+            passive: true,
+            capture: false 
+        });
+        
+        // Track extension visibility
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') {
+                this.updateActivity();
+            }
+        });
+        
+        // Track when extension tab becomes active
+        if (chrome.tabs) {
+            try {
+                chrome.tabs.onActivated.addListener((activeInfo) => {
+                    chrome.tabs.get(activeInfo.tabId, (tab) => {
+                        if (tab && tab.url && tab.url.includes(chrome.runtime.id)) {
+                            this.updateActivity();
+                        }
+                    });
+                });
+            } catch (e) {
+                console.warn('Unable to track tab activation:', e);
+            }
+        }
+        
+        // Save state periodically
+        this.intervalId = setInterval(() => this.persistState(), 60000); // Every minute
+        
+        // Load previous state and update activity immediately
+        await this.loadState();
+        this.updateActivity();
+        
+        return this;
+    }
+    
+    updateActivity() {
+        this.lastActivity = Date.now();
+        this.persistState();
+    }
+    
+    isActive() {
+        const inactiveTime = Date.now() - this.lastActivity;
+        const isActive = inactiveTime < 30 * 60 * 1000; // 30 minutes
+        return isActive;
+    }
+    
+    async persistState() {
+        try {
+            await chrome.storage.local.set({
+                'activityState': {
+                    lastActivity: this.lastActivity
+                }
+            });
+        } catch (e) {
+            console.warn('Failed to persist activity state:', e);
+        }
+    }
+    
+    async loadState() {
+        try {
+            const data = await chrome.storage.local.get('activityState');
+            if (data.activityState) {
+                this.lastActivity = data.activityState.lastActivity || Date.now();
+            }
+        } catch (e) {
+            console.warn('Failed to load activity state:', e);
+            this.lastActivity = Date.now();
+        }
+    }
+    
+    getInactivityDuration() {
+        return Date.now() - this.lastActivity;
+    }
+    
+    dispose() {
+        if (this.intervalId) {
+            clearInterval(this.intervalId);
+            this.intervalId = null;
+        }
+        
+        // Remove event listeners
+        document.removeEventListener('click', this.updateActivity);
+        document.removeEventListener('keydown', this.updateActivity);
+        document.removeEventListener('scroll', this.updateActivity);
+        document.removeEventListener('mousemove', this.updateActivity, { 
+            passive: true,
+            capture: false 
+        });
+        
+        document.removeEventListener('visibilitychange', this.updateActivity);
+    }
+}
+```
+
+The ActivityTracker monitors user interaction with the extension and provides activity timestamps used by the Smart Cache Manager to make intelligent decisions about cache expiry. It tracks user actions such as clicks, key presses, mouse movements, and tab activations to determine when the user was last active with the extension.
+
+### 8. Page Capture (page-capture.js)
+
+```javascript
+// Content script injected into pages for screenshot capture
+function captureFullPage() {
+    const captureData = {
+        totalWidth: 0,
+        totalHeight: 0,
+        viewportWidth: window.innerWidth,
+        viewportHeight: window.innerHeight,
+        scrollX: window.scrollX,
+        scrollY: window.scrollY,
+        arrangements: [],
+        currentArrangement: 0
+    };
+
+    // Calculate page dimensions
+    // Generate scroll positions (arrangements)
+    // Capture each viewport and report progress
+    // ...implementation
+}
+
+// Message listener
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message.action === 'capture_page') {
+        captureFullPage()
+            .then(result => sendResponse({ success: true, ...result }))
+            .catch(error => sendResponse({ success: false, error: error.message }));
+        return true; // Keep channel open for async response
+    }
+    // ...other message handlers
+});
+```
+
+The page-capture.js script is injected into web pages to capture full-page screenshots. It calculates page dimensions, generates scroll positions, captures each viewport, and reports progress back to the extension.
+
+### 9. Image Processor (image-processor.js)
+
+```javascript
+export default class ImageProcessor {
+    constructor() {
+        // Initialize properties
+    }
+
+    // Image processing methods
+    stitchScreenshots(screenshots) { /* ... */ }
+    compressImage(dataUrl, quality) { /* ... */ }
+    cropImage(dataUrl, rect) { /* ... */ }
+    // ...other methods
+}
+```
+
+The ImageProcessor handles image manipulation operations such as stitching multiple screenshots together, compressing images, and cropping screenshots.
+
+## KEY FEATURES
+
+### 1. Tab Management
+
+- **Persistent Tabs**: Tabs remain in the list even when closed in Chrome
+- **Tab Grouping**: Integration with Chrome's tab groups
+- **Tab Navigation**: Next/previous navigation with keyboard support
+- **Undo Closed Tabs**: History of closed tabs for undo operations
+- **Preference Persistence**: User preferences are saved across sessions using localStorage
+- **Activity-Aware Tab Handling**: Integration with activity tracking for smarter tab management
+
+### 2. Screenshot Capture
+
+- **Full-Page Screenshots**: Captures the entire page, not just the visible area
+- **Progressive Capture**: Shows progress during capture
+- **Image Stitching**: Combines multiple screenshots into a single image
+- **Format Options**: Options for image format and quality
+
+### 3. Workspace Management
+
+- **Save Workspaces**: Save collections of tabs as named workspaces
+- **Intelligent Loading**: Loads workspaces with duplicate prevention and metrics tracking
+- **Preview Workspaces**: View workspace contents without opening tabs
+- **Improved Guidance**: Clear instructions for workspace operations
+- **Sidebar Interface**: Easy access to workspace management with enhanced user interface
+
+### 4. Caching System
+
+- **Screenshot Caching**: Stores screenshots for quick access
+- **Cache Management**: Controls cache size and cleanup
+- **Batch Operations**: Optimized for handling multiple screenshots
+- **Activity-Based Expiry**: Cache items expire based on user activity rather than fixed time
+- **Smart Quota Management**: Dynamically manages storage quota based on usage patterns
+- **Prioritized Storage**: Keeps frequently used items in cache longer
+
+## CHROME EXTENSION APIS USED
+
+- **chrome.tabs**: For querying and manipulating tabs
+- **chrome.tabGroups**: For integrating with Chrome's tab groups
+- **chrome.scripting**: For injecting content scripts
+- **chrome.storage.local**: For storing extension settings and activity state
+- **chrome.runtime**: For message passing between components
+
+## DATA FLOW
+
+1. **Tab Selection**:
+   User selects a tab → TabManager.selectTab() → ActivityTracker.updateActivity() → App.handleTabSelect() → UI.showPreview() → SmartCacheManager.getFromCache()
+
+2. **Screenshot Capture**:
+   User clicks capture → ActivityTracker.updateActivity() → App.captureScreenshot() → chrome.runtime.sendMessage() → background.js → page-capture.js → ImageProcessor.stitchScreenshots() → SmartCacheManager.addToCache()
+
+3. **Workspace Operations**:
+   User saves workspace → ActivityTracker.updateActivity() → App.saveWorkspace() → WorkspaceManager.saveWorkspace() → Sidebar.renderWorkspaces()
+
+4. **Workspace Loading**:
+   User loads workspace → App.loadWorkspace() → existingTabsByUrl tracking → Open only necessary tabs → Track and display metrics → Update UI
+
+## CODE PATTERNS
+
+1. **Module Pattern**: Components are isolated with clear interfaces
+2. **Error Handling**: Comprehensive error handling with fallbacks and user feedback
+3. **Async/Await**: Consistent use of async/await for asynchronous operations
+4. **Event-Driven Architecture**: Components communicate through events
+5. **Dependency Injection**: Components receive dependencies in constructors or methods
+
+## IMPLEMENTATION CHALLENGES
+
+1. **Full-Page Screenshots**: Capturing full pages requires complex scrolling and stitching logic
+2. **Tab Persistence**: Tracking closed tabs while maintaining Chrome's ordering
+3. **Workspace Management**: Creating a flexible system for saving and loading tab sets
+4. **Performance**: Managing memory usage with potentially large screenshots
+5. **Error Recovery**: Handling network issues, permission problems, and browser limitations
+6. **Activity-Based Caching**: Implementing intelligent cache expiry based on user activity
+7. **Storage Quota Management**: Balancing storage needs with browser limitations
+
+## EXTENSION LIFECYCLE
+
+1. **Installation**: Extension is installed, background script is registered
+2. **Activation**: User clicks extension icon, main UI is loaded, activity tracking begins
+3. **Tab Management**: User interacts with tab list and preview, activity timestamps updated
+4. **Screenshot Capture**: User initiates capture, progress is displayed
+5. **Workspace Operations**: User saves, loads, or modifies workspaces
+6. **Smart Cache Management**: Screenshots are cached with activity-based expiry
+7. **Activity Monitoring**: Continuous tracking of user activity to inform cache decisions
+
+## SECURITY CONSIDERATIONS
+
+1. **Permission Model**: Uses minimal required permissions
+2. **Data Storage**: All data is stored locally, no external transmission
+3. **Content Security**: Implements Content Security Policy
+4. **Error Handling**: Prevents exposure of sensitive information in errors
+
+## PERFORMANCE OPTIMIZATIONS
+
+1. **Lazy Loading**: Components are initialized only when needed
+2. **Image Compression**: Screenshots are compressed to reduce storage requirements
+3. **Batch Operations**: Multiple operations are batched for efficiency
+4. **IndexedDB Indexing**: Efficient data access through database indexes
+5. **Resource Cleanup**: Proper cleanup of resources to prevent memory leaks
+6. **Activity-Based Cache Expiry**: Intelligently removes less relevant items from cache
+7. **Adaptive Storage Management**: Adjusts storage usage based on activity patterns

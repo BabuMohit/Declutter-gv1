@@ -1,0 +1,240 @@
+/* Tab list and tab item styles */
+.tab-filters {
+    display: flex;
+    padding: 10px 15px;
+    border-bottom: 1px solid var(--border-color);
+    background-color: #f5f5f7;
+}
+
+.tab-filter-btn {
+    background: none;
+    border: none;
+    padding: 6px 12px;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--light-text);
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.tab-filter-btn.active {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.tab-filter-btn:hover:not(.active) {
+    background-color: var(--hover-background);
+}
+
+.tab-counts {
+    padding: 10px 15px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    font-size: 12px;
+    color: var(--light-text);
+    border-bottom: 1px solid var(--border-color);
+    background-color: var(--card-background);
+}
+
+.tab-count-item {
+    display: flex;
+    align-items: center;
+}
+
+.count-indicator {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 5px;
+}
+
+.count-indicator.count-total {
+    background-color: var(--light-text);
+}
+
+.count-indicator.count-open {
+    background-color: var(--primary-color);
+}
+
+.count-indicator.count-closed {
+    background-color: var(--very-light-text);
+}
+
+.count-indicator.count-preview {
+    background-color: var(--success-color);
+}
+
+.count-value {
+    font-weight: 600;
+    margin-left: 3px;
+}
+
+.tab-list-container {
+    flex: 1;
+    overflow-y: auto;
+    padding: 5px 0;
+}
+
+.tab-item {
+    display: flex;
+    padding: 8px 15px;
+    border-bottom: 1px solid var(--border-color);
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.tab-item:hover {
+    background-color: var(--hover-background);
+}
+
+.tab-item.selected {
+    background-color: rgba(52, 152, 219, 0.1);
+    border-left: 3px solid var(--primary-color);
+}
+
+.tab-favicon {
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+    margin-right: 10px;
+}
+
+.tab-info {
+    flex: 1;
+    min-width: 0;
+    /* Helps with text truncation */
+}
+
+.tab-title {
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 3px;
+}
+
+.tab-url {
+    font-size: 11px;
+    color: var(--light-text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.tab-actions {
+    display: flex;
+    align-items: center;
+    margin-left: 10px;
+}
+
+.tab-action-btn {
+    background: none;
+    border: none;
+    color: var(--light-text);
+    cursor: pointer;
+    padding: 3px;
+    margin-left: 5px;
+    border-radius: 3px;
+    font-size: 14px;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+}
+
+.tab-action-btn:hover {
+    opacity: 1;
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+.tab-action-btn.close {
+    color: var(--danger-color);
+}
+
+.tab-status-indicator {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 8px;
+}
+
+.tab-status-indicator.open {
+    background-color: var(--primary-color);
+}
+
+.tab-status-indicator.closed {
+    background-color: var(--light-text);
+}
+
+.tab-status-indicator.preview {
+    background-color: var(--success-color);
+}
+
+.tab-group {
+    margin-bottom: 5px;
+}
+
+.tab-group-header {
+    padding: 6px 15px;
+    font-size: 12px;
+    font-weight: 600;
+    color: white;
+    background-color: #666;
+    border-radius: 12px;
+    margin: 5px 10px;
+    display: inline-block;
+}
+
+/* Group colors */
+.tab-group-header.grey {
+    background-color: #8c8c8c;
+}
+
+.tab-group-header.blue {
+    background-color: #1a73e8;
+}
+
+.tab-group-header.red {
+    background-color: #d93025;
+}
+
+.tab-group-header.yellow {
+    background-color: #f9ab00;
+}
+
+.tab-group-header.green {
+    background-color: #1e8e3e;
+}
+
+.tab-group-header.pink {
+    background-color: #d01884;
+}
+
+.tab-group-header.purple {
+    background-color: #a142f4;
+}
+
+.tab-group-header.cyan {
+    background-color: #12b5cb;
+}
+
+.tab-group-header.orange {
+    background-color: #e37400;
+}
+
+.tab-empty-message {
+    padding: 20px;
+    text-align: center;
+    color: var(--very-light-text);
+    font-style: italic;
+}
+
+.tab-cached-indicator {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background-color: var(--success-color);
+    display: inline-block;
+    margin-left: 5px;
+    vertical-align: middle;
+}

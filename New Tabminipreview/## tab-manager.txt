@@ -1,0 +1,530 @@
+## tab-manager.js - Line by Line Analysis
+
+### Overview
+The `tab-manager.js` file implements a robust tab management system for the Chrome extension. It provides functionality for listing, selecting, and managing tabs, including features such as tab grouping, persisting closed tabs, and handling tab operations like opening, closing, and removing tabs.
+
+### Class Definition and Constructor (Lines 1-18)
+```javascript
+class TabManager {
+    constructor() {
+        this.tabs = [];
+        this.persistentTabs = [];
+        this.tabContainer = null;
+        this.onTabSelect = null;
+        this.extensionTabId = null;
+        this.tabGroups = null;
+        this.autoLoadNewTabs = true;
+        this.closedTabsHistory = [];
+        this.removedTabsHistory = [];
+        this.cachedTabIds = new Set();
+    }
+```
+- The `TabManager` class constructor initializes essential properties:
+  - `tabs`: Array to store current tabs
+  - `persistentTabs`: Array to maintain tabs even after they're closed
+  - `tabContainer`: DOM element reference for the tab list UI
+  - `onTabSelect`: Callback function for tab selection events
+  - `extensionTabId`: ID of the extension's own tab to avoid self-references
+  - `tabGroups`: Stores information about Chrome tab groups
+  - `autoLoadNewTabs`: Flag to auto-detect new tabs (defaulted to true)
+  - `closedTabsHistory` and `removedTabsHistory`: Arrays to support undo operations
+  - `cachedTabIds`: Set of tab IDs that have cached screenshots
+
+### Initialization (Lines 19-67)
+```javascript
+async init(container, selectCallback) {
+    this.tabContainer = container;
+    this.onTabSelect = selectCallback;
+    // Get current tab ID for excluding from list
+    const currentTab = await this.getCurrentTab();
+    this.extensionTabId = currentTab.id;
+    // Initialize tab list
+    await this.getTabs();
+    // Initialize tab group support if available
+    if (chrome.tabGroups) {
+        await this.getTabGroups();
+    }
+    // Register tab update listeners
+    this.registerTabListeners();
+}
+```
+- The `init` method sets up the tab manager by:
+  - Storing references to the container element and callback function
+  - Getting the current tab (extension's own tab) to exclude it from the listing
+  - Loading the initial tab list with `getTabs()`
+  - Initializing tab group support if the Chrome API is available
+  - Setting up listeners for tab-related events
+
+### Tab Data Retrieval (Lines 68-106)
+```javascript
+async getTabs() {
+    try {
+        // Get all tabs from Chrome
+        const tabs = await chrome.tabs.query({});
+        this.tabs = tabs;
+        // Update persistent tabs with current status
+        this.updatePersistentTabs(tabs);
+        // Render the tab list
+        this.renderTabs();
+        return tabs;
+    } catch (error) {
+        console.error('Error getting tabs:', error);
+        this.renderError('Error loading tabs: ' + error.message);
+        return [];
+    }
+}
+```
+- Fetches all tabs from Chrome using the `chrome.tabs.query` API
+- Updates the `persistentTabs` array with the current status of tabs
+- Renders the tab list in the UI container
+- Includes comprehensive error handling
+
+### Tab Status Management (Lines 107-178)
+```javascript
+updateTabStatus() {
+    chrome.tabs.query({}, (tabs) => {
+        // Update our tabs array with the latest data
+        this.tabs = tabs;
+        // Update persistent tabs status
+        this.updatePersistentTabs(tabs);
+        // Update tab groups if supported
+        if (chrome.tabGroups) {
+            this.getTabGroups().then(() => {
+                this.renderTabs();
+            });
+        } else {
+            this.renderTabs();
+        }
+    });
+}
+```
+- Updates the status of tabs by querying Chrome for the latest tab data
+- Marks tabs in the `persistentTabs` array as open or closed based on current Chrome state
+- Updates tab groups information if supported
+- Re-renders the tab list to reflect changes
+
+### Event Listeners (Lines 179-199)
+```javascript
+registerTabListeners() {
+    // Listen for tab updates
+    chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+        if (changeInfo.status === 'complete' || changeInfo.title) {
+            this.updateTabStatus();
+        }
+    });
+    // Listen for tab removals
+    chrome.tabs.onRemoved.addListener((tabId) => {
+        this.updateTabStatus();
+    });
+    // Listen for tab group updates if supported
+    if (chrome.tabGroups) {
+        chrome.tabGroups.onUpdated.addListener(() => {
+            this.getTabGroups().then(() => {
+                this.updateTabStatus();
+            });
+        });
+    }
+}
+```
+- Sets up Chrome API event listeners for tab-related events:
+  - `onUpdated`: Triggered when a tab's content or properties change
+  - `onRemoved`: Triggered when a tab is closed
+  - `onUpdated` for tab groups: Triggered when tab groups are modified
+- Each listener calls `updateTabStatus()` to refresh the tab data and UI
+
+### Tab Order Management (Lines 200-290)
+```javascript
+// Sort open tabs among themselves to reflect Chrome's order
+// Get indices of open tabs
+const openTabPositions = this.persistentTabs
+    .filter(tab => tab.isOpenInChrome)
+    .map(tab => this.persistentTabs.indexOf(tab));
+// Sort open tabs by index within Chrome
+openTabPositions.sort((a, b) => {
+    return this.persistentTabs[a].index - this.persistentTabs[b].index;
+});
+// Create a new array with tabs in the correct order
+const newOrder = [...this.persistentTabs];
+// Apply the sorting only to open tabs, leaving closed tabs in place
+for (let i = 0; i < openTabPositions.length; i++) {
+    const originalIndex = openTabPositions[i];
+    const tab = this.persistentTabs[originalIndex];
+    // Only move items if needed
+    if (newOrder.indexOf(tab) !== i) {
+        // Remove from old position and add at new position
+        newOrder.splice(newOrder.indexOf(tab), 1);
+        newOrder.splice(i, 0, tab);
+    }
+}
+// Update the persistent tabs array
+this.persistentTabs = newOrder;
+```
+- Manages the order of tabs to maintain correct sorting:
+  - Identifies open tabs and their positions in the persistent tabs array
+  - Sorts open tabs according to their Chrome index
+  - Creates a new array with tabs in the proper order
+  - Applies the sorting only to open tabs while preserving the positions of closed tabs
+  - Updates the persistent tabs array with the new order
+
+### Tab Group Management (Lines 291-345)
+```javascript
+async getTabGroups() {
+    try {
+        if (!chrome.tabGroups) {
+            return;
+        }
+        // Get current window
+        const currentWindow = await this.getCurrentWindow();
+        // Get all groups in the current window
+        const groups = await chrome.tabGroups.query({
+            windowId: currentWindow.id
+        });
+        // Query tabs specifically from the active window to ensure correct ordering
+        const freshTabs = await chrome.tabs.query({
+            windowId: currentWindow.id
+        });
+        // Map tabs to their groups
+        const tabsInGroups = new Map();
+        // Initialize groups
+        groups.forEach(group => {
+            tabsInGroups.set(group.id, []);
+        });
+        // Assign tabs to groups with the most up-to-date position info
+        freshTabs.forEach(tab => {
+            if (tab.groupId && tab.groupId !== chrome.tabGroups.TAB_GROUP_ID_NONE) {
+                if (tabsInGroups.has(tab.groupId)) {
+                    tabsInGroups.get(tab.groupId).push(tab);
+                }
+            }
+        });
+        // Sort each group's tabs by index to ensure they appear in correct order
+        for (const [groupId, tabs] of tabsInGroups.entries()) {
+            tabsInGroups.set(groupId, tabs.sort((a, b) => a.index - b.index));
+        }
+        this.tabGroups = {
+            groups,
+            tabsInGroups,
+            windowId: currentWindow.id
+        };
+    } catch (error) {
+        console.error('Error getting tab groups:', error);
+        this.tabGroups = null;
+    }
+}
+```
+- Manages Chrome tab groups functionality:
+  - Gets all tab groups in the current window using the Chrome API
+  - Maps tabs to their respective groups
+  - Sorts tabs within each group by their index for proper ordering
+  - Stores the organized tab group data for rendering
+  - Includes robust error handling
+
+### UI Rendering (Lines 346-433)
+```javascript
+renderTabs() {
+    if (!this.tabContainer) return;
+    // Clear container
+    this.tabContainer.innerHTML = '';
+    if (this.persistentTabs.length === 0) {
+        this.renderNoTabs();
+        return;
+    }
+    // Create a map of tabs in groups
+    const tabsInGroups = new Map();
+    const renderedGroups = new Set();
+    // Prepare map of group IDs to their tabs
+    if (this.tabGroups && this.tabGroups.groups.length > 0) {
+        this.tabGroups.groups.forEach(group => {
+            tabsInGroups.set(group.id, this.tabGroups.tabsInGroups.get(group.id) || []);
+        });
+    }
+    // Render tabs and groups in the exact order they appear in Chrome
+    for (let i = 0; i < this.persistentTabs.length; i++) {
+        const tab = this.persistentTabs[i];
+        // Skip tabs that are in the extension itself
+        if (tab.id === this.extensionTabId) {
+            continue;
+        }
+        // If this tab belongs to a group and we haven't rendered that group yet
+        if (tab.groupId &&
+            tab.groupId !== chrome.tabGroups.TAB_GROUP_ID_NONE &&
+            !renderedGroups.has(tab.groupId) &&
+            this.tabGroups) {
+            // Find the group data
+            const group = this.tabGroups.groups.find(g => g.id === tab.groupId);
+            if (group) {
+                // Get persistent tabs in this group
+                const persistentGroupTabs = this.persistentTabs.filter(t => t.groupId === group.id);
+                // Only render if there are tabs in the group
+                if (persistentGroupTabs.length > 0) {
+                    // Sort tabs within the group by index
+                    const sortedGroupTabs = [...persistentGroupTabs].sort((a, b) => a.index - b.index);
+                    // Render the entire group
+                    this.renderTabGroup(group, sortedGroupTabs);
+                    // Mark this group as rendered
+                    renderedGroups.add(group.id);
+                }
+            }
+        }
+        // Render ungrouped tabs individually
+        else if (!tab.groupId || tab.groupId === chrome.tabGroups.TAB_GROUP_ID_NONE) {
+            this.createTabElement(tab);
+        }
+    }
+}
+```
+- Renders the tab list in the UI container:
+  - Clears the container and displays a message if there are no tabs
+  - Prepares a map of tabs in groups for efficient rendering
+  - Renders tabs in the exact order they appear in Chrome
+  - Handles grouped tabs by rendering them together within their group container
+  - Renders ungrouped tabs individually
+  - Skips the extension's own tab
+
+### Tab Control Buttons (Lines 434-537)
+```javascript
+initControlButtons() {
+    // Find existing Load New and Sync List buttons
+    const existingLoadNew = document.querySelector('[data-action="load-new"]');
+    const existingSyncList = document.querySelector('[data-action="sync-list"]');
+    // If buttons already exist, just add event listeners
+    if (existingLoadNew) {
+        // Set initial appearance based on autoLoadNewTabs state
+        if (this.autoLoadNewTabs) {
+            existingLoadNew.classList.add('btn-primary');
+            existingLoadNew.classList.remove('btn-secondary');
+            existingLoadNew.title = 'Auto-detect new tabs is ON';
+            existingLoadNew.innerHTML = 'Load New: ON';
+        } else {
+            existingLoadNew.classList.remove('btn-primary');
+            existingLoadNew.classList.add('btn-secondary');
+            existingLoadNew.title = 'Auto-detect new tabs is OFF';
+            existingLoadNew.innerHTML = 'Load New: OFF';
+        }
+        // Add click event listener
+        existingLoadNew.addEventListener('click', () => this.handleLoadNew());
+    }
+    if (existingSyncList) {
+        existingSyncList.addEventListener('click', () => this.handleSyncList());
+    }
+}
+```
+- Initializes and manages control buttons for tab operations:
+  - `Load New`: Toggles automatic detection of new tabs
+  - `Sync List`: Updates the tab list to match currently open tabs in Chrome
+  - Sets up appropriate event listeners and visual styling based on current state
+
+### Tab Operation Handlers (Lines 538-745)
+```javascript
+async handleCloseAllTabs() {
+    try {
+        if (!confirm('Are you sure you want to close all tabs in this window except this extension tab?')) {
+            return;
+        }
+        // Get all tabs in the current window
+        const currentWindow = await this.getCurrentWindow();
+        const tabs = await chrome.tabs.query({ windowId: currentWindow.id });
+        // Filter out the extension tab
+        const tabsToClose = tabs.filter(tab => tab.id !== this.extensionTabId);
+        if (tabsToClose.length === 0) {
+            alert('No other tabs to close in this window.');
+            return;
+        }
+        // Store tabs for undo functionality
+        this.closedTabsHistory.push(tabsToClose.map(tab => ({
+            url: tab.url,
+            title: tab.title,
+            pinned: tab.pinned,
+            active: tab.active,
+            windowId: tab.windowId
+        })));
+        // Close all tabs
+        const tabIds = tabsToClose.map(tab => tab.id);
+        await chrome.tabs.remove(tabIds);
+        // Update tab status
+        setTimeout(() => {
+            this.updateTabStatus();
+        }, 300);
+        // Show success message
+        alert(`Successfully closed ${tabIds.length} tab(s).`);
+    } catch (error) {
+        console.error('Error closing all tabs:', error);
+        alert('Error closing tabs: ' + error.message);
+    }
+}
+```
+- Implements handlers for various tab operations:
+  - `handleLoadNew()`: Toggles auto-detection of new tabs
+  - `handleSyncList()`: Synchronizes the persistent tabs list with currently open tabs
+  - `handleCloseAllTabs()`: Closes all tabs except the extension's own tab
+  - `handleCloseTabsWithPreviews()`: Closes only tabs that have generated previews
+  - `handleRemoveClosedTabs()`: Removes closed tabs from the persistent list
+  - `handleUndoClosedTabs()`: Restores recently closed or removed tabs
+- Each handler includes confirmation dialogs, success messages, and error handling
+- Uses the `closedTabsHistory` and `removedTabsHistory` arrays to support undo operations
+
+### Tab Group UI Creation (Lines 746-857)
+```javascript
+renderTabGroup(group, tabs) {
+    // Create group container
+    const groupElement = document.createElement('div');
+    groupElement.className = 'tab-group';
+    groupElement.dataset.groupId = group.id;
+    // Chrome has specific colors for tab groups, ensure we map them correctly
+    const chromeColorMap = {
+        'grey': '#5f6368',
+        'blue': '#1a73e8',
+        'red': '#ea4335',
+        'yellow': '#fbbc04',
+        'green': '#34a853',
+        'pink': '#e83f64',
+        'purple': '#a142f4',
+        'cyan': '#24c1e0',
+        'orange': '#fa903e'
+    };
+    // Get correct color from map or use the provided color with fallback
+    const groupColor = chromeColorMap[group.color] || group.color || '#5f6368';
+    // Create group header with title, color indicator, and collapse control
+    // ...
+    // Set up click handler for collapse/expand
+    groupHeader.addEventListener('click', (e) => {
+        // Don't trigger collapse if clicking on a tab
+        if (e.target.closest('.tab-item')) {
+            return;
+        }
+        groupContent.classList.toggle('collapsed');
+        collapseIndicator.textContent = groupContent.classList.contains('collapsed') ? '▶' : '▼';
+        // Store collapsed state in session storage for persistence
+        try {
+            const collapsedGroups = JSON.parse(sessionStorage.getItem('collapsedGroups') || '{}');
+            collapsedGroups[group.id] = groupContent.classList.contains('collapsed');
+            sessionStorage.setItem('collapsedGroups', JSON.stringify(collapsedGroups));
+        } catch (e) {
+            console.warn('Could not save group collapsed state:', e);
+        }
+    });
+    // ...
+}
+```
+- Creates and manages the UI for tab groups:
+  - Creates a container element for the group with proper styling and data attributes
+  - Maps Chrome's tab group colors to their corresponding hex values
+  - Creates a header with title, color indicator, and collapse/expand control
+  - Implements collapsible functionality with state persistence in session storage
+  - Adds tabs to the group with proper ordering
+
+### Tab Element Creation (Lines 858-1063)
+```javascript
+createTabElement(tab, container = null) {
+    const tabElement = document.createElement('div');
+    tabElement.className = 'tab-item';
+    tabElement.dataset.tabId = tab.id;
+    // Add class for closed tabs
+    if (!tab.isOpenInChrome) {
+        tabElement.classList.add('tab-closed');
+    }
+    // Mark extension's own tab
+    if (tab.id === this.extensionTabId) {
+        tabElement.classList.add('extension-tab');
+    }
+    // Mark tabs with cached previews - with safety check
+    if (this.cachedTabIds && typeof this.cachedTabIds.has === 'function' && this.cachedTabIds.has(tab.id)) {
+        tabElement.classList.add('cached');
+    }
+    // Check if tab is capturable
+    const isCapturable = this.isCapturableUrl(tab.url);
+    if (!isCapturable) {
+        tabElement.classList.add('disabled');
+        tabElement.title = 'This tab cannot be captured due to browser restrictions';
+    }
+    // Create favicon, title, domain elements
+    // ...
+    // Create a container for tab action buttons
+    const tabActions = document.createElement('div');
+    tabActions.className = 'tab-actions';
+    // Add open tab button
+    const openButton = document.createElement('button');
+    openButton.className = 'tab-open-btn';
+    openButton.title = tab.isOpenInChrome ? 'Switch to this tab' : 'Open this tab';
+    // Add click handler for open button
+    openButton.addEventListener('click', async (e) => {
+        e.stopPropagation(); // Prevent triggering the tab selection
+        try {
+            if (tab.isOpenInChrome) {
+                // Tab is open, switch to it
+                await chrome.tabs.update(tab.id, { active: true });
+                // Get the window and focus it
+                const tabDetails = await chrome.tabs.get(tab.id);
+                if (tabDetails.windowId) {
+                    await chrome.windows.update(tabDetails.windowId, { focused: true });
+                }
+            } else {
+                // Tab is closed, open it in background
+                await chrome.tabs.create({
+                    url: tab.url,
+                    active: false
+                });
+                // Update tabs after a short delay
+                setTimeout(() => {
+                    this.updateTabStatus();
+                }, 300);
+            }
+        } catch (error) {
+            console.error('Error opening/switching to tab:', error);
+            alert('Error opening tab: ' + error.message);
+        }
+    });
+    // ...
+}
+```
+- Creates and manages individual tab elements in the UI:
+  - Creates a container element with proper classes and data attributes
+  - Adds visual indicators for closed tabs, cached tabs, and non-capturable tabs
+  - Creates and styles favicon, title, and domain elements
+  - Implements tab action buttons (open, delete) with appropriate event handlers
+  - Handles different states for open vs. closed tabs
+  - Implements mouse hover effects to show/hide action buttons
+
+### Tab List Management (Lines 1064-1263)
+```javascript
+removeTabFromList(tabId) {
+    // Store removed tab for undo functionality
+    const tabToRemove = this.persistentTabs.find(tab => tab.id === tabId);
+    if (tabToRemove) {
+        this.removedTabsHistory.push([tabToRemove]);
+    }
+    // Remove from persistent tabs
+    this.persistentTabs = this.persistentTabs.filter(tab => tab.id !== tabId);
+    // Rerender tabs
+    this.renderTabs();
+}
+```
+- Implements utility methods for tab list management:
+  - `removeTabFromList()`: Removes a tab from the persistent tabs list with undo support
+  - `getAllTabs()` and `getTabById()`: Getter methods for tab data
+  - `isCapturableUrl()`: Checks if a URL can be captured (excludes special Chrome URLs)
+  - `extractDomain()` and `getSafeFavIconUrl()`: Helper methods for tab display
+  - `sanitizeText()`: Prevents XSS by sanitizing tab titles
+  - `setCaptureInProgress()`, `updateCachedTabIds()`, `highlightSelectedTab()`: UI state management
+  - `updateTabElement()`: Updates an existing tab element without re-rendering the entire list
+
+### Error Handling and Safety Measures
+- Throughout the file, there is robust error handling with try-catch blocks and informative error messages
+- Safety checks prevent operations on undefined objects or properties
+- Fallbacks are provided for missing data or API features
+- User confirmations for destructive operations like closing tabs or removing them from the list
+- Event propagation control to prevent unintended actions
+
+### Key Design Patterns
+1. **Observer Pattern**: Using Chrome API event listeners to react to tab changes
+2. **Command Pattern**: Encapsulating operations in handler methods with undo support
+3. **Factory Pattern**: Methods like `createTabElement` and `renderTabGroup` that create UI components
+4. **State Management**: Careful tracking and updating of tab states (open, closed, cached)
+5. **Async/Await Pattern**: Modern promise-based handling of asynchronous Chrome API calls
+
+### Performance Considerations
+- Efficient rendering by only updating what's necessary
+- Proper debouncing with timeouts for operations that could trigger rapid updates
+- Session storage for persisting group collapse states
+- Smart ordering of tabs to minimize DOM manipulations
+- Delayed updates after Chrome API operations to ensure changes have completed

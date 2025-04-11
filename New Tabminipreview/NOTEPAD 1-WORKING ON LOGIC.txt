@@ -1,0 +1,77 @@
+Cache not always
+Save lists and workaspaces-better, maybe as groups
+Save lists with rpeviews
+
+MAybe show lists as history instead of workspaces
+better way to navigate and view saved lists (maybe history only!)
+
+
+
+Bookmarks with 21st dev's UI for the pane
+
+Simpler verison without complexity:
+Group all open tabs, wdit them and sync them-if not synced, duplicate as new group
+
+After working with bunch of open tabs, save them as bookmark or groups-with names such as: last used, 21/010/1100
+
+View bookmark lists
+Edit bookmark folders
+Open tab
+Add bookmark to current list of tabs
+
+DECIDE DOWN ON THE UI
+
+
+
+
+
+THE MAIN AIM-I THINK, IS TO FOCUS ON DECLUTTERING, AND THUS SHOWING THE LIST OF TABS AS PREVIEWS
+
+1.) sAVE THE SAME LIST TO VIEW LATER, AS BOOKMARKS OR GROUPS
+
+2.)MAKE A BOOKMARK FOLDER THAT SAVES EVERY BOOKMARK YOU EVERY HAD,E.T.C.
+
+3.) VIEW THE BOOKMARK MANAGER, AND VIEW THE PREVIEWS OF A BOOKMARK FOLDER AS A LIST, BE ABLE TO DO ALL OPERATIONS:
+
+• IF NEW FOLDER IS CREATED-GIVE SEARCH BAR AND ADD OPTION TO ENTER LINKS
+
+• FIRESHOT LIKE BUNCH TOO, IF POSSIBLE (SIMPLE LOGIC-IF PREVIEW IS NOT ALDREADY AVAILABLE, GENERATE IT THEN.)
+
+•EVALUATE THE CURRENT LOGIC AND FIX THEM ALL
+
+•Also, look into all current logic such as arrow buttons working, and ALSO capturing using arrow buttons if preview is not aldready there. (maybe dropdown on the arrow buttons, or in the expanded view.)
+
+•Select like images to generate previews.
+
+•Batch wise-next 25,e.t.c. previews
+
+•MAKE HIDDEN PREVIEW GENERATION, LIKE IN PUPETEERMIGRATED VERSION POSSIBLE.
+
+
+
+I WANTED TO MAKE A FEW CHANGES TO THE UX BEFORE WE PROCEED WITH ADDING A FEW MORE FEATURES:
+
+
+•Load new button         -----|
+•sync list button              |              In the pane:
+•Clear cache button      ---------|     View/Review/Edit/Organize- OPEN TABS, TAB GROUPS, BOOKMARK MANAGER
+
+•Add tabs with URL
+•Search tabs by name or URL
+•Add bunch of tabs like fire shot
+•Import tabs from bookmark/group to current list.
+
+•ADDITIONAL SETTINGS:
+
+  →Automatic preview generation while arrow buttons are clicked
+  →Selection options- Batchwise, checkboxes
+  →SHOW ONLY CURRENT CHROME WINDOW INSTANCE AND NOT ALL
+  →FORGET ABOUT SHOWING FOR ALL OPEN TABS-IN REALTIME
+  →
+
+
+•Save pane
+•Save list as bookmarks or tab groups (Save button)
+•Bookmark folder consisting of all work like history, inside dedicated bookmark folder for Declutter
+•History button instead of autosave 
+•History to show all Actions
